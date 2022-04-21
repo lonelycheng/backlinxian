@@ -16,7 +16,7 @@ public class BackPersonVo {
     private String uploadvillage;
     private String wanggeyuan;
     private String uploaddate;
-    private String type ;
+    private String type;
     private String method;
     private String person1;
     private String person2;
