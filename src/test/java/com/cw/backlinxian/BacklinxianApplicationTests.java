@@ -1,7 +1,9 @@
 package com.cw.backlinxian;
 
 import com.cw.backlinxian.vo.BackPersonVo;
+import com.cw.backlinxian.vo.DailyCountVo;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.ss.usermodel.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -300,7 +302,7 @@ class BacklinxianApplicationTests {
         System.out.println(sdf.format(date1));
     }
 
-    // 生成当日的日报
+    // 生成当日的日报(包含每日和累计数据) - 给镇领导看
     @Test
     void ribao() {
         List<String> uploaddate = jdbcTemplate.query("select distinct uploaddate from back_linxian_people;", new RowMapper<String>() {
@@ -309,10 +311,110 @@ class BacklinxianApplicationTests {
                 return resultSet.getString("uploaddate");
             }
         });
+        ArrayList<DailyCountVo> dailyCountVos = new ArrayList<>();
         // 根据每一天的日报返回
         for (String date : uploaddate) {
             List<BackPersonVo> backPersonVos = queryBackPerson(date);
             System.out.println(date + "->" +backPersonVos.size());
+            DailyCountVo dailyCountVo = new DailyCountVo();
+            int type1Count = 0;
+            int type2Count = 0;
+            int type3Count = 0;
+            int totalCount = backPersonVos.size();
+            int homeCount = 0;
+            int groupCount = 0;
+            int jianceCount = 0;
+            for (BackPersonVo vo : backPersonVos) {
+                // 类型数量
+                if("1".equals(vo.getType())) {
+                    type1Count++;
+                }
+                if("2".equals(vo.getType()) || "4".equals(vo.getType())) { // 省内和临县的属于省内非太原
+                    type2Count++;
+                }
+                if("3".equals(vo.getType())) {
+                    type3Count++;
+                }
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    homeCount++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    groupCount++;
+                }
+                if(vo.getMethod().contains("监测")) {
+                    jianceCount++;
+                }
+            }
+            dailyCountVo.setDate(date);
+            dailyCountVo.setType1Count(type1Count);
+            dailyCountVo.setType2Count(type2Count);
+            dailyCountVo.setType3Count(type3Count);
+            dailyCountVo.setTotalCount(totalCount);
+            dailyCountVo.setHomeCount(homeCount);
+            dailyCountVo.setGroupCount(groupCount);
+            dailyCountVo.setJianceCount(jianceCount);
+            dailyCountVos.add(dailyCountVo);
+        }
+
+        // 分开处理是为了后续拆分接口方便，不然可以直接写一起了
+        // 读取模板文件
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\4每日统计最新模板.xlsx"));
+        Sheet sheet = wb.getSheetAt(0);
+        // 设置一下字体，居中美观
+        Font font = wb.createFont();
+        font.setFontHeightInPoints((short)12);
+        CellStyle style=wb.createCellStyle();
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        int rowNum = 2; // 从第3行开始创建
+        // 累计的数据
+        int type1CountAll = 0;
+        int type2CountAll = 0;
+        int type3CountAll = 0;
+        int totalCountAll = 0;
+        int homeCountAll = 0;
+        int groupCountAll = 0;
+        int jianceCountAll = 0;
+        // 输出日报所需数据
+        for (DailyCountVo vo : dailyCountVos) {
+            Row row = sheet.createRow(rowNum++);
+            int i = 0;
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getDate());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getType1Count());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getType2Count());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getType3Count());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getTotalCount());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getHomeCount());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getGroupCount());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getJianceCount());
+            type1CountAll+= vo.getType1Count();
+            type2CountAll+= vo.getType2Count();
+            type3CountAll+= vo.getType3Count();
+            totalCountAll+= vo.getTotalCount();
+            homeCountAll+= vo.getHomeCount();
+            groupCountAll+= vo.getGroupCount();
+            jianceCountAll+= vo.getJianceCount();
+        }
+        // 加一行累计
+        Row row = sheet.createRow(rowNum++);
+        int i = 0;
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue("累计");
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(type1CountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(type2CountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(type3CountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(totalCountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(homeCountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(groupCountAll);
+        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(jianceCountAll);
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
+            String format = sdf.format(new Date());
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\4每日统计最新" + format +".xlsx");
+            wb.write(output);
+            output.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
