@@ -24,6 +24,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SpringBootTest
 class BacklinxianApplicationTests {
@@ -37,7 +39,7 @@ class BacklinxianApplicationTests {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
-    // 0.读取疫情防控表，入库当日数据。delete & refresh。
+    // =================init读取疫情防控表，入库当日数据。delete & refresh。======================
     @Test
     void contextLoads() {
         // 读取excel
@@ -88,7 +90,62 @@ class BacklinxianApplicationTests {
         }
     }
 
-    // 1、生成五包一名单 -- 只是当日数据
+    /**
+     * 0、生成太原、省内、省外的五包一名单
+     * 生成完直接发给他们，不需要调整格式
+     * @param date
+     * @param result
+     * @param type
+     */
+    void generateWubaoyiExcel(String date, List<BackPersonVo> result, String type) {
+        // 读取excel
+        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\0五包一临泉镇返临人员排查表模板.xlsx"));
+        Sheet sheet2 = wb2.getSheetAt(0);
+        int rowNum = 2; // 从第3行开始创建
+        int count = 0; // 序号
+        for (BackPersonVo vo : result) {
+            Row row = sheet2.createRow(rowNum++);
+            int i = 0;
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(++count);
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getName());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getUploadvillage());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getId());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getBackdesc());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getBacktime());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getTel());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getPerson1());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getPerson2());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getPerson3());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getPerson4());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue(vo.getWanggeyuan());
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("阴性");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("");
+            row.createCell(i).setCellType(CellType.STRING);row.getCell(i++).setCellValue("临泉镇人民政府");
+        }
+        String typeName = "";
+        if("1".equals(type)) {
+            typeName = "太原";
+        }
+        if("2".equals(type)) {
+            typeName = "省内";
+        }
+        if("3".equals(type)) {
+            typeName = "省外";
+        }
+        try {
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_0"+typeName+"五包一临泉镇返临人员排查表.xlsx");
+            wb2.write(output);
+            output.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 1、生成五包一名单 -- 只是当日数据，我们自己打印留存
     void generateWubaoyiExcel(String date, List<BackPersonVo> result) {
         // 读取excel
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\1五包一临泉镇返临人员排查表模板.xlsx"));
@@ -311,7 +368,7 @@ class BacklinxianApplicationTests {
         type1RowAll.getCell(i++).setCellValue(type1CountAll);
         type1RowAll.getCell(i++).setCellValue(type1JizhongCountAll);
         type1RowAll.getCell(i++).setCellValue(type1JujiaCountAll);
-        type1RowAll.getCell(i++).setCellValue(type1JiechuCountAll);
+        type1RowAll.getCell(i++).setCellValue(type1JiechuCountAll - type1ShilianCountAll); // 这个和检委的那个逻辑不一样，居家隔离人数就是太原应该隔离的，也就是总人数，但是解除隔离的应该要把失联的这部分减除掉， 解除隔离人数+失联人数= 总共七天以前的人数。
         type1RowAll.getCell(i++).setCellValue(type1ShilianCountAll);
         i = 1; // 重置
         Row type2Row = sheet.getRow(3);
@@ -583,11 +640,6 @@ class BacklinxianApplicationTests {
         }
     }
 
-    @Test
-    void test() throws FileNotFoundException {
-        System.out.println(1111);
-    }
-
     // 主方法
     @Test
     void main() throws ParseException {
@@ -596,6 +648,30 @@ class BacklinxianApplicationTests {
         List<BackPersonVo> result = queryBackPerson(date);
         List<BackPersonVo> resultAll = queryBackPerson("ALL");
         // 1、卫健委
+        // 生成分的五包一文件
+        List<BackPersonVo> type1List = new ArrayList<>();
+        List<BackPersonVo> type2List = new ArrayList<>();
+        List<BackPersonVo> type3List = new ArrayList<>();
+        for (BackPersonVo vo : result) {
+            if(vo.getMethod().contains("居家")) {
+                // 居家隔离的生成五包一名单
+                if("1".equals(vo.getType())) {
+                    type1List.add(vo);
+                }
+                if("2".equals(vo.getType()) || "4".equals(vo.getType())) {
+                    type2List.add(vo);
+                }
+                if("3".equals(vo.getType())) {
+                    type3List.add(vo);
+                }
+            }
+        }
+        // 太原、省内、省外
+        generateWubaoyiExcel(date, type1List, "1");
+        generateWubaoyiExcel(date, type2List, "2");
+        generateWubaoyiExcel(date, type3List, "3");
+
+        // 总的打印的五包一文件
         generateWubaoyiExcel(date, result);
         generateWeijianwei(date, result, resultAll);
         // 2、检委会
