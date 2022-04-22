@@ -8,21 +8,6 @@ public class DailyCountVo {
     private int totalCount;
     private int homeCount;
     private int groupCount;
-    private int jianceCount;
-
-    @Override
-    public String toString() {
-        return "DailyCountVo{" +
-                "date='" + date + '\'' +
-                ", type1Count=" + type1Count +
-                ", type2Count=" + type2Count +
-                ", type3Count=" + type3Count +
-                ", totalCount=" + totalCount +
-                ", homeCount=" + homeCount +
-                ", groupCount=" + groupCount +
-                ", jianceCount=" + jianceCount +
-                '}';
-    }
 
     public String getDate() {
         return date;
@@ -78,13 +63,5 @@ public class DailyCountVo {
 
     public void setGroupCount(int groupCount) {
         this.groupCount = groupCount;
-    }
-
-    public int getJianceCount() {
-        return jianceCount;
-    }
-
-    public void setJianceCount(int jianceCount) {
-        this.jianceCount = jianceCount;
     }
 }

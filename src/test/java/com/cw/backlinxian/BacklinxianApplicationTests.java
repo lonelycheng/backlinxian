@@ -10,8 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.util.ResourceUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Array;
@@ -35,14 +37,14 @@ class BacklinxianApplicationTests {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
-    // 读取疫情防控表，入库当日数据。delete & refresh
+    // 0.读取疫情防控表，入库当日数据。delete & refresh。
     @Test
     void contextLoads() {
         // 读取excel
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\1临泉镇新冠疫情防控返临人员排查表4月.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
 
-        jdbcTemplate.update("delete from cw.back_linxian_people /*where uploaddate = '2022.04.21'*/;"); // 清空表
+        jdbcTemplate.update("delete from cw.back_linxian_people /*where uploaddate = '2022.04.22'*/;"); // 清空表
         for (int i = 1; i<sheet2.getPhysicalNumberOfRows(); i++) {
             Row row = sheet2.getRow(i);
             int j = 1; // 从name开始解析，放到arr里下标-1
@@ -71,7 +73,7 @@ class BacklinxianApplicationTests {
     }
 
     // 根据日期（date eg. 2022.04.15）查询所有疫情名单或者所有（ALL）
-    private List<BackPersonVo> queryBackPerson(String date) {
+    List<BackPersonVo> queryBackPerson(String date) {
         String sql = "";
         if("ALL" .equals(date)) {
             Object[] objects = {};
@@ -86,15 +88,10 @@ class BacklinxianApplicationTests {
         }
     }
 
-    // 生成五包一名单
-    @Test
-    void generateWubaoyiExcel() {
-        String date = "2022.04.21";
-        List<BackPersonVo> result = queryBackPerson(date);
-        System.out.println("共解析到:" + result.size() + "条记录");
-
+    // 1、生成五包一名单 -- 只是当日数据
+    void generateWubaoyiExcel(String date, List<BackPersonVo> result) {
         // 读取excel
-        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\3五包一返临\\五包一临泉镇返临人员排查表模板.xlsx"));
+        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\1五包一临泉镇返临人员排查表模板.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
         int rowNum = 3; // 从第4行开始创建
         int count = 0; // 序号 & 总数
@@ -156,7 +153,7 @@ class BacklinxianApplicationTests {
         String totalMsg = date + " 共排查"+count+"人，其中太原"+type1Count+"人，省内除太原"+type2Count+"人，省外"+type3Count+"人。采取防控措施："+jujiaCount+"人居家隔离，"+jizhongCount+"人集中隔离。";
         cell.setCellValue(totalMsg);
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\3五包一返临\\五包一临泉镇返临人员排查表" + date +".xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_1五包一临泉镇返临人员排查表.xlsx");
             wb2.write(output);
             output.flush();
         } catch (IOException e) {
@@ -165,15 +162,205 @@ class BacklinxianApplicationTests {
 
     }
 
-    @Test
-    // 生成监督委员会需要的异常码人员名单和日报表
-    void generateJianwei() throws ParseException {
+    // 2、生成卫健委所需的报表数据，每日和累计报表 date "2022.04.22"
+    void generateWeijianwei(String date, List<BackPersonVo> result, List<BackPersonVo> resultAll) throws ParseException {
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\2县卫健委每日报表.xlsx"));
+        Sheet sheet = wb.getSheetAt(0);
+        ///1、===============当日数据===============
+        int type1Count = 0; // 太原
+        int type2Count = 0; // 省内
+        int type3Count = 0; // 省外
+        // 集中隔离人数
+        int type1JizhongCount = 0; // 太原
+        int type2JizhongCount = 0; // 省内
+        int type3JizhongCount = 0; // 省外
+        // 居家隔离
+        int type1JujiaCount = 0; // 太原
+        int type2JujiaCount = 0; // 省内
+        int type3JujiaCount = 0; // 省外
+        // 解除隔离 - 当日解除隔离的按七天前计算
+        int type1JiechuCount = 0; // 太原
+        int type2JiechuCount = 0; // 省内
+        int type3JiechuCount = 0; // 省外
+        // 失联
+        int type1ShilianCount = 0; // 太原
+        int type2ShilianCount = 0; // 省内
+        int type3ShilianCount = 0; // 省外
+        for (BackPersonVo vo : result) {
+            // 类型数量
+            if("1".equals(vo.getType())) {
+                type1Count++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type1JujiaCount++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type1JizhongCount++;
+                }
+            }
+            if("2".equals(vo.getType()) || "4".equals(vo.getType())) { // 省内和临县的属于省内非太原
+                type2Count++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type2JujiaCount++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type2JizhongCount++;
+                }
+            }
+            if("3".equals(vo.getType())) {
+                type3Count++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type3JujiaCount++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type3JizhongCount++;
+                }
+            }
+        }
+        // 2、===============累计数据===============
+        int type1CountAll = 0; // 太原
+        int type2CountAll = 0; // 省内
+        int type3CountAll = 0; // 省外
+        // 集中隔离人数
+        int type1JizhongCountAll = 0; // 太原
+        int type2JizhongCountAll = 0; // 省内
+        int type3JizhongCountAll = 0; // 省外
+        // 居家隔离
+        int type1JujiaCountAll = 0; // 太原
+        int type2JujiaCountAll = 0; // 省内
+        int type3JujiaCountAll = 0; // 省外
+        // 解除隔离
+        int type1JiechuCountAll = 0; // 太原
+        int type2JiechuCountAll = 0; // 省内
+        int type3JiechuCountAll = 0; // 省外
+        // 失联
+        int type1ShilianCountAll = 77; // 太原
+        int type2ShilianCountAll = 0; // 省内
+        int type3ShilianCountAll = 0; // 省外
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
+        Date d = sdf.parse(date);
+        Date d2 = DateUtils.addDays(d, -6);
+        Date d3 = DateUtils.addDays(d, -7);
+        for (BackPersonVo vo : resultAll) {
+            // 类型数量
+            if("1".equals(vo.getType())) {
+                type1CountAll++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type1JujiaCountAll++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type1JizhongCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).before(d2)) { // 上报超过七天的，都算为总的解除隔离的数量
+                    type1JiechuCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).equals(d3)) { // 正好是七天前的日期，认为是当前解除隔离的数量
+                    type1JiechuCount++;
+                }
+            }
+            if("2".equals(vo.getType()) || "4".equals(vo.getType())) { // 省内和临县的属于省内非太原
+                type2CountAll++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type2JujiaCountAll++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type2JizhongCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).before(d2)) {
+                    type2JiechuCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).equals(d3)) { // 正好是七天前的日期，认为是当前解除隔离的数量
+                    type2JiechuCount++;
+                }
+            }
+            if("3".equals(vo.getType())) {
+                type3CountAll++;
+                // 隔离数量
+                if(vo.getMethod().contains("居家")) {
+                    type3JujiaCountAll++;
+                }
+                if(vo.getMethod().contains("集中")) {
+                    type3JizhongCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).before(d2)) {
+                    type3JiechuCountAll++;
+                }
+                if(sdf.parse(vo.getUploaddate()).equals(d3)) { // 正好是七天前的日期，认为是当前解除隔离的数量
+                    type3JiechuCount++;
+                }
+            }
+        }
+
+        // 将生成好的数字填到excel中生成当日报表。
+        int i = 1;
+        Row type1Row = sheet.getRow(1);
+        type1Row.getCell(i++).setCellValue(type1Count);
+        type1Row.getCell(i++).setCellValue(type1Count);
+        type1Row.getCell(i++).setCellValue(type1JizhongCount);
+        type1Row.getCell(i++).setCellValue(type1JujiaCount);
+        type1Row.getCell(i++).setCellValue(type1JiechuCount);
+        type1Row.getCell(i++).setCellValue(type1ShilianCount);
+        i = 1; // 重置
+        Row type1RowAll = sheet.getRow(2);
+        type1RowAll.getCell(i++).setCellValue(type1CountAll);
+        type1RowAll.getCell(i++).setCellValue(type1CountAll);
+        type1RowAll.getCell(i++).setCellValue(type1JizhongCountAll);
+        type1RowAll.getCell(i++).setCellValue(type1JujiaCountAll);
+        type1RowAll.getCell(i++).setCellValue(type1JiechuCountAll);
+        type1RowAll.getCell(i++).setCellValue(type1ShilianCountAll);
+        i = 1; // 重置
+        Row type2Row = sheet.getRow(3);
+        type2Row.getCell(i++).setCellValue(type2Count);
+        type2Row.getCell(i++).setCellValue(type2Count);
+        type2Row.getCell(i++).setCellValue(type2JizhongCount);
+        type2Row.getCell(i++).setCellValue(type2JujiaCount);
+        type2Row.getCell(i++).setCellValue(type2JiechuCount);
+        type2Row.getCell(i++).setCellValue(type2ShilianCount);
+        i = 1; // 重置
+        Row type2RowAll = sheet.getRow(4);
+        type2RowAll.getCell(i++).setCellValue(type2CountAll);
+        type2RowAll.getCell(i++).setCellValue(type2CountAll);
+        type2RowAll.getCell(i++).setCellValue(type2JizhongCountAll);
+        type2RowAll.getCell(i++).setCellValue(type2JujiaCountAll);
+        type2RowAll.getCell(i++).setCellValue(type2JiechuCountAll);
+        type2RowAll.getCell(i++).setCellValue(type2ShilianCountAll);
+        i = 1; // 重置
+        Row type3Row = sheet.getRow(6);
+        type3Row.getCell(i++).setCellValue(type3Count);
+        type3Row.getCell(i++).setCellValue(type3Count);
+        type3Row.getCell(i++).setCellValue(type3JizhongCount);
+        type3Row.getCell(i++).setCellValue(type3JujiaCount);
+        i++;
+        type3Row.getCell(i++).setCellValue(type3JiechuCount);
+        type3Row.getCell(i++).setCellValue(type3ShilianCount);
+        i = 1; // 重置
+        Row type3RowAll = sheet.getRow(7);
+        type3RowAll.getCell(i++).setCellValue(type3CountAll);
+        type3RowAll.getCell(i++).setCellValue(type3CountAll);
+        type3RowAll.getCell(i++).setCellValue(type3JizhongCountAll);
+        type3RowAll.getCell(i++).setCellValue(type3JujiaCountAll);
+        i++;
+        type3RowAll.getCell(i++).setCellValue(type3JiechuCountAll);
+        type3RowAll.getCell(i++).setCellValue(type3ShilianCountAll);
+        try {
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_2县卫健委每日报表.xlsx");
+            wb.write(output);
+            output.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 3、生成监督委员会需要的异常码人员名单和累计报表
+    void generateJianwei(String date, List<BackPersonVo> result, List<BackPersonVo> resultAll) throws ParseException {
         // 1.生成黄码和红码人员名单 - 当日
-        String date = "2022.04.21";
-        List<BackPersonVo> result = queryBackPerson(date);
-        System.out.println("共解析到:" + result.size() + "条记录");
         // 读取excel
-        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\4报备\\红码黄码名单模板.xlsx"));
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\3红码黄码名单模板.xlsx"));
         Sheet sheet = wb.getSheetAt(0);
         int rowNum = 1; // 从第1行开始创建
         int count = 0; // 序号 & 总数
@@ -203,7 +390,7 @@ class BacklinxianApplicationTests {
             }
         }
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\4报备\\红码黄码名单模板" + date +".xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_3红码黄码名单模板.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
@@ -211,10 +398,8 @@ class BacklinxianApplicationTests {
         }
 
         // 2.生成日报表 - 累计,查询所有记录
-        List<BackPersonVo> resultAll = queryBackPerson("ALL");
-        System.out.println("共解析到:" + resultAll.size() + "条记录");
         // 读取excel
-        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\4报备\\工作簿模板.xlsx"));
+        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\4工作簿模板.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
         // 统计截止日期
         sheet2.getRow(1).getCell(0).setCellValue("截止" + date);
@@ -286,7 +471,7 @@ class BacklinxianApplicationTests {
         sheet2.getRow(4).getCell(i++).setCellValue(huangmaOut);
         sheet2.getRow(4).getCell(i++).setCellValue(huangmaIn);
         try {
-            FileOutputStream output2=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\4报备\\工作簿模板" + date +".xlsx");
+            FileOutputStream output2=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_4工作簿模板.xlsx");
             wb2.write(output2);
             output2.flush();
         } catch (IOException e) {
@@ -294,17 +479,8 @@ class BacklinxianApplicationTests {
         }
     }
 
-    @Test
-    void test() throws ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
-        Date date = sdf.parse("2022.04.21");
-        Date date1 = DateUtils.addDays(date, -7);
-        System.out.println(sdf.format(date1));
-    }
-
-    // 生成当日的日报(包含每日和累计数据) - 给镇领导看
-    @Test
-    void ribao() {
+    // 4、生成当日的日报(包含每日和累计数据) - 给镇领导看
+    void ribao(String today) {
         List<String> uploaddate = jdbcTemplate.query("select distinct uploaddate from back_linxian_people;", new RowMapper<String>() {
             @Override
             public String mapRow(ResultSet resultSet, int i) throws SQLException {
@@ -323,7 +499,6 @@ class BacklinxianApplicationTests {
             int totalCount = backPersonVos.size();
             int homeCount = 0;
             int groupCount = 0;
-            int jianceCount = 0;
             for (BackPersonVo vo : backPersonVos) {
                 // 类型数量
                 if("1".equals(vo.getType())) {
@@ -342,9 +517,6 @@ class BacklinxianApplicationTests {
                 if(vo.getMethod().contains("集中")) {
                     groupCount++;
                 }
-                if(vo.getMethod().contains("监测")) {
-                    jianceCount++;
-                }
             }
             dailyCountVo.setDate(date);
             dailyCountVo.setType1Count(type1Count);
@@ -353,13 +525,12 @@ class BacklinxianApplicationTests {
             dailyCountVo.setTotalCount(totalCount);
             dailyCountVo.setHomeCount(homeCount);
             dailyCountVo.setGroupCount(groupCount);
-            dailyCountVo.setJianceCount(jianceCount);
             dailyCountVos.add(dailyCountVo);
         }
 
         // 分开处理是为了后续拆分接口方便，不然可以直接写一起了
         // 读取模板文件
-        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\4每日统计最新模板.xlsx"));
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\5每日统计最新模板.xlsx"));
         Sheet sheet = wb.getSheetAt(0);
         // 设置一下字体，居中美观
         Font font = wb.createFont();
@@ -375,7 +546,6 @@ class BacklinxianApplicationTests {
         int totalCountAll = 0;
         int homeCountAll = 0;
         int groupCountAll = 0;
-        int jianceCountAll = 0;
         // 输出日报所需数据
         for (DailyCountVo vo : dailyCountVos) {
             Row row = sheet.createRow(rowNum++);
@@ -387,14 +557,12 @@ class BacklinxianApplicationTests {
             row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getTotalCount());
             row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getHomeCount());
             row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getGroupCount());
-            row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(vo.getJianceCount());
             type1CountAll+= vo.getType1Count();
             type2CountAll+= vo.getType2Count();
             type3CountAll+= vo.getType3Count();
             totalCountAll+= vo.getTotalCount();
             homeCountAll+= vo.getHomeCount();
             groupCountAll+= vo.getGroupCount();
-            jianceCountAll+= vo.getJianceCount();
         }
         // 加一行累计
         Row row = sheet.createRow(rowNum++);
@@ -406,16 +574,34 @@ class BacklinxianApplicationTests {
         row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(totalCountAll);
         row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(homeCountAll);
         row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(groupCountAll);
-        row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(jianceCountAll);
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
-            String format = sdf.format(new Date());
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\4每日统计最新" + format +".xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+today+"_5每日统计最新模板.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    void test() throws FileNotFoundException {
+        System.out.println(1111);
+    }
+
+    // 主方法
+    @Test
+    void main() throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
+        String date = sdf.format(new Date());
+        List<BackPersonVo> result = queryBackPerson(date);
+        List<BackPersonVo> resultAll = queryBackPerson("ALL");
+        // 1、卫健委
+        generateWubaoyiExcel(date, result);
+        generateWeijianwei(date, result, resultAll);
+        // 2、检委会
+        generateJianwei(date, result, resultAll);
+        // 3、当日镇日报
+        ribao(date);
     }
 
 }
