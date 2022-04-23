@@ -674,8 +674,9 @@ class BacklinxianApplicationTests {
         // 总的打印的五包一文件
         generateWubaoyiExcel(date, result);
         generateWeijianwei(date, result, resultAll);
+        // 2022年4月22日19:31:45 检委会的这两个表又说不用报了。
         // 2、检委会
-        generateJianwei(date, result, resultAll);
+//        generateJianwei(date, result, resultAll);
         // 3、当日镇日报
         ribao(date);
     }
