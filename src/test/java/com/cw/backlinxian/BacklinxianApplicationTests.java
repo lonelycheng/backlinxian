@@ -2,6 +2,7 @@ package com.cw.backlinxian;
 
 import com.cw.backlinxian.vo.BackPersonVo;
 import com.cw.backlinxian.vo.DailyCountVo;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.ss.usermodel.*;
@@ -46,8 +47,8 @@ class BacklinxianApplicationTests {
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\1临泉镇新冠疫情防控返临人员排查表4月.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
 
-        jdbcTemplate.update("delete from cw.back_linxian_people /*where uploaddate = '2022.04.22'*/;"); // 清空表
-        for (int i = 1; i<sheet2.getPhysicalNumberOfRows(); i++) {
+        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.23';"); // 清空表
+        for (int i = 2542; i<sheet2.getPhysicalNumberOfRows(); i++) {
             Row row = sheet2.getRow(i);
             int j = 1; // 从name开始解析，放到arr里下标-1
             String insertSql = "INSERT INTO cw.back_linxian_people\n" +
@@ -642,7 +643,7 @@ class BacklinxianApplicationTests {
 
     // 主方法
     @Test
-    void main() throws ParseException {
+    void main() throws Exception {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
         String date = sdf.format(new Date());
         List<BackPersonVo> result = queryBackPerson(date);
@@ -679,6 +680,34 @@ class BacklinxianApplicationTests {
 //        generateJianwei(date, result, resultAll);
         // 3、当日镇日报
         ribao(date);
+
+        // 最终，发送文件 给企业微信
+        sendExcel2Wechat(date);
+    }
+
+    @Test
+    void sendExcel2Wechat(String date) throws Exception{
+        File fileRoot = new File("C:\\Users\\99543\\Desktop\\tmp\\1报表生成");
+        File[] files = fileRoot.listFiles();
+        String accessToken = TeamWechatUtil.getAccessToken();
+        if(StringUtils.isEmpty(accessToken)) {
+            System.out.println("获取企业微信accesstoken报错");
+            return;
+        }
+        String requestStr = "{\"touser\":\""+TeamWechatUtil.USERID+"\",\"msgtype\":\"text\",\"agentid\":"+TeamWechatUtil.AGENTID+",\"text\":{\"content\":\"开始发送"+date+"当日文件\"},\"safe\":0}";
+        TeamWechatUtil.pushtMsg(accessToken, requestStr);
+        for (File file : files) {
+            if(file.getName().startsWith(date)) {
+                // 确定发送文件
+                String mediaId = TeamWechatUtil.fileUpload(accessToken, file);
+                if(StringUtils.isEmpty(mediaId)) {
+                    System.out.println("上传临时素材失败");
+                    return;
+                }
+                String requestFileStr = "{\"touser\":\""+TeamWechatUtil.USERID+"\",\"msgtype\":\"file\",\"agentid\":"+TeamWechatUtil.AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
+                TeamWechatUtil.pushtMsg(accessToken, requestFileStr);
+            }
+        }
     }
 
 }
