@@ -30,7 +30,7 @@ public class TeamWechatUtil {
     // 企业微信测试企业账号的id和 防疫小应用的secret
     public static final String CORPID = "ww5d6d97ad43b9170c";
     public static final String CORPSECRET = "6ULyZwMZRUQI1zRzs7Oj1wnmhHCxSfpvlCXNF1lcf58";
-    public static final String USERID = "ChengWei|ShiXingHeRuMeng"; // 需要发送给谁信息
+    public static final String USERID = "ChengWei|ShiXingHeRuMeng|freedom"; // 需要发送给谁信息
     public static final int AGENTID = 1000002; // 需要发送给谁信息
 
     static CloseableHttpClient httpclient = HttpClients.createDefault();

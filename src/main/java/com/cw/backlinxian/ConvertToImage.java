@@ -10,10 +10,10 @@ import java.io.File;
 
 public class ConvertToImage {
 
-    public static void ConvertToImage() {
+    public static void ConvertToImage(String excelPath) {
         Workbook book = null;
         try {
-            book = new Workbook("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\2022.04.23_5每日统计最新模板.xlsx");
+            book = new Workbook("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\" + excelPath);
             // Get the first worksheet
             //Worksheet sheet = book.getWorksheets().get(0);
             Worksheet sheet = book.getWorksheets().get(0);
@@ -34,14 +34,14 @@ public class ConvertToImage {
 
             // Render the image for the sheet
             //render.toImage(0, dataDir + "SheetImage.jpg");
-            render.toImage(0, "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\2022.04.23_5每日统计最新模板.png");
+            render.toImage(0, "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\" + excelPath.replace("xlsx", "jpg"));
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    public static void main(String[] args) {
-        ConvertToImage();
-    }
+//    public static void main(String[] args) {
+//        ConvertToImage();
+//    }
 }

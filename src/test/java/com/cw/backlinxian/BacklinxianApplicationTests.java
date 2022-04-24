@@ -47,8 +47,8 @@ class BacklinxianApplicationTests {
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\1临泉镇新冠疫情防控返临人员排查表4月.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
 
-        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.23';"); // 清空表
-        for (int i = 2542; i<sheet2.getPhysicalNumberOfRows(); i++) {
+        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.24';"); // 清空表
+        for (int i = 2596; i<sheet2.getPhysicalNumberOfRows(); i++) {
             Row row = sheet2.getRow(i);
             int j = 1; // 从name开始解析，放到arr里下标-1
             String insertSql = "INSERT INTO cw.back_linxian_people\n" +
@@ -138,7 +138,7 @@ class BacklinxianApplicationTests {
             typeName = "省外";
         }
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_0"+typeName+"五包一临泉镇返临人员排查表.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_0" +typeName+"五包一临泉镇返临人员排查表.xlsx");
             wb2.write(output);
             output.flush();
         } catch (IOException e) {
@@ -639,6 +639,108 @@ class BacklinxianApplicationTests {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        ConvertToImage.ConvertToImage(today+"_5每日统计最新模板.xlsx");
+    }
+
+
+    // 5、解码表
+    @Test
+    void jiema(String date) {
+        // 读取excel
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\6临泉镇解码模板.xlsx"));
+        Sheet sheet = wb.getSheetAt(0);
+        int rowNum = 4; // 从第5行开始创建
+        int count = 0; // 序号
+        sheet.getRow(1).getCell(9).setCellValue("填报时间：  " + date);
+
+        // 读取excel
+        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\2临泉镇解码.xlsx"));
+        Sheet sheet2 = wb2.getSheetAt(0);
+        for (int i = rowNum; i<sheet2.getPhysicalNumberOfRows(); i++) {
+            Row row2 = sheet2.getRow(i);
+            if (date.equals(row2.getCell(14).getStringCellValue())) {
+                Row row = sheet.createRow(rowNum++);
+                int j = 0;
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(++count); // 序号
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(1)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(2)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("0");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(4)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(5)));
+                String type = Util.getCellValueByCell(row2.getCell(7)); // 类型
+                String village = Util.getCellValueByCell(row2.getCell(8)); // 村委社区
+                String reason = Util.getCellValueByCell(row2.getCell(6)); // 解码原因
+                String memo = Util.getCellValueByCell(row2.getCell(13)); // 备注
+                if("1".equals(type)) {
+                    // 从未出过临县
+                    reason = Util.jiemaMap.get(village);
+                    memo = "14天内未出临县";
+                } else if ("2".equals(type)) {
+                    // 快递
+                    reason = "根据吕梁市健康码工作专班通知，已完成3+1管控措施符合解码条件，予以解码。";
+                } /*else {
+                    // 3 其他。把正常的解码原因填进来
+                    reason = Util.getCellValueByCell(row2.getCell(6));
+                }*/
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(reason); // 解码原因
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("141100");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("green");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(StringUtils.isNotEmpty(Util.getCellValueByCell(row2.getCell(12)))? Util.getCellValueByCell(row2.getCell(12)): village); // 如果没填详细地址，填入所属社区
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(memo);
+            }
+        }
+        sheet.getRow(2).getCell(0).setCellValue("文件名：                 ，解码数量：    "+count+"     人 。");
+
+        try {
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_6临泉镇解码第一批" + count +"人.xlsx");
+            wb.write(output);
+            output.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 6、每日解除隔离日报
+    @Test
+    void jiechu(String date) {
+        // 读取excel
+        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\7临泉镇解除隔离日报表.xlsx"));
+        Sheet sheet = wb.getSheetAt(0);
+        int rowNum = 3; // 从第4行开始创建
+        int count = 0; // 序号
+        sheet.getRow(1).getCell(0).setCellValue("乡镇主要负责人：                                                 填报日期：" + date);
+
+        // 读取excel
+        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\3临泉镇解除隔离日报表.xlsx"));
+        Sheet sheet2 = wb2.getSheetAt(0);
+        for (int i = rowNum; i<sheet2.getPhysicalNumberOfRows(); i++) {
+            Row row2 = sheet2.getRow(i);
+            if(date.equals(row2.getCell(10).getStringCellValue())) {
+                // 当日的数据
+                Row row = sheet.createRow(rowNum++);
+                int j = 0;
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(++count);
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellValue(Util.getCellValueByCell(row2.getCell(j++)));
+            }
+        }
+        try {
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_7临泉镇解除隔离日报表.xlsx");
+            wb.write(output);
+            output.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // 主方法
@@ -681,8 +783,13 @@ class BacklinxianApplicationTests {
         // 3、当日镇日报
         ribao(date);
 
+        // 解除隔离日报
+        jiechu(date);
+        // 解码日报
+        jiema(date);
+
         // 最终，发送文件 给企业微信
-//        sendExcel2Wechat(date);
+        sendExcel2Wechat(date);
     }
 
     @Test
@@ -698,13 +805,19 @@ class BacklinxianApplicationTests {
         TeamWechatUtil.pushtMsg(accessToken, requestStr);
         for (File file : files) {
             if(file.getName().startsWith(date)) {
+                String userid = ""; // 日报发送给不同的人
+                if(file.getName().startsWith(date + "_0省外") || file.getName().startsWith(date + "_2")) { // 发送给卫健委省外的
+                    userid = "ChengWei|ShiXingHeRuMeng|freedom";
+                } else {
+                    userid = "ChengWei|freedom";
+                }
                 // 确定发送文件
                 String mediaId = TeamWechatUtil.fileUpload(accessToken, file);
                 if(StringUtils.isEmpty(mediaId)) {
                     System.out.println("上传临时素材失败");
                     return;
                 }
-                String requestFileStr = "{\"touser\":\""+TeamWechatUtil.USERID+"\",\"msgtype\":\"file\",\"agentid\":"+TeamWechatUtil.AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
+                String requestFileStr = "{\"touser\":\""+ userid +"\",\"msgtype\":\"file\",\"agentid\":"+TeamWechatUtil.AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
                 TeamWechatUtil.pushtMsg(accessToken, requestFileStr);
             }
         }
