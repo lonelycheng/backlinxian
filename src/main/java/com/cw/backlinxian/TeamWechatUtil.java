@@ -136,15 +136,15 @@ public class TeamWechatUtil {
             System.out.println("获取企业微信accesstoken报错");
             return;
         }
-        String requestStr = "{\"touser\":\""+USERID+"\",\"msgtype\":\"text\",\"agentid\":"+AGENTID+",\"text\":{\"content\":\"我要开始发送文件了！\"},\"safe\":0}";
+        String requestStr = "{\"touser\":\""+"ChengWei|freedom"+"\",\"msgtype\":\"text\",\"agentid\":"+AGENTID+",\"text\":{\"content\":\"我要开始发送文件了！\"},\"safe\":0}";
         pushtMsg(accessToken, requestStr);
-        File file = new File("C:\\Users\\99543\\Desktop\\tmp\\3居家隔离失联人员情况登记表.xlsx");
+        File file = new File("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\2022.04.23_5每日统计最新模板.png");
         String mediaId = fileUpload(accessToken, file);
         if(StringUtils.isEmpty(mediaId)) {
             System.out.println("上传临时素材失败");
             return;
         }
-        String requestFileStr = "{\"touser\":\""+USERID+"\",\"msgtype\":\"file\",\"agentid\":"+AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
+        String requestFileStr = "{\"touser\":\""+"ChengWei|freedom"+"\",\"msgtype\":\"file\",\"agentid\":"+AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
         pushtMsg(accessToken, requestFileStr);
 
     }
