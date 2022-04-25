@@ -47,8 +47,8 @@ class BacklinxianApplicationTests {
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\1临泉镇新冠疫情防控返临人员排查表4月.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
 
-        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.24';"); // 清空表
-        for (int i = 2596; i<sheet2.getPhysicalNumberOfRows(); i++) {
+        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.25';"); // 清空表
+        for (int i = 2672; i<sheet2.getPhysicalNumberOfRows(); i++) {
             Row row = sheet2.getRow(i);
             int j = 1; // 从name开始解析，放到arr里下标-1
             String insertSql = "INSERT INTO cw.back_linxian_people\n" +
@@ -163,6 +163,11 @@ class BacklinxianApplicationTests {
         Font font = wb2.createFont();
         font.setFontHeightInPoints((short)8); // 小号字体
         CellStyle style=wb2.createCellStyle();
+//        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN); //下边框
+        style.setBorderLeft(BorderStyle.THIN);//左边框
+        style.setBorderTop(BorderStyle.THIN);//上边框
+        style.setBorderRight(BorderStyle.THIN);//右边框
         style.setFont(font);
         for (BackPersonVo vo : result) {
             // 类型数量
@@ -211,7 +216,7 @@ class BacklinxianApplicationTests {
         String totalMsg = date + " 共排查"+count+"人，其中太原"+type1Count+"人，省内除太原"+type2Count+"人，省外"+type3Count+"人。采取防控措施："+jujiaCount+"人居家隔离，"+jizhongCount+"人集中隔离。";
         cell.setCellValue(totalMsg);
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_1五包一临泉镇返临人员排查表.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_3五包一临泉镇返临人员排查表.xlsx");
             wb2.write(output);
             output.flush();
         } catch (IOException e) {
@@ -406,7 +411,7 @@ class BacklinxianApplicationTests {
         type3RowAll.getCell(i++).setCellValue(type3JiechuCountAll);
         type3RowAll.getCell(i++).setCellValue(type3ShilianCountAll);
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_2县卫健委每日报表.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_1县卫健委每日报表.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
@@ -596,6 +601,10 @@ class BacklinxianApplicationTests {
         CellStyle style=wb.createCellStyle();
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN); //下边框
+        style.setBorderLeft(BorderStyle.THIN);//左边框
+        style.setBorderTop(BorderStyle.THIN);//上边框
+        style.setBorderRight(BorderStyle.THIN);//右边框
         int rowNum = 2; // 从第3行开始创建
         // 累计的数据
         int type1CountAll = 0;
@@ -633,13 +642,14 @@ class BacklinxianApplicationTests {
         row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(homeCountAll);
         row.createCell(i).setCellType(CellType.STRING);row.getCell(i).setCellStyle(style);row.getCell(i++).setCellValue(groupCountAll);
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+today+"_5每日统计最新模板.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+today+"_5每日统计.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        ConvertToImage.ConvertToImage(today+"_5每日统计最新模板.xlsx");
+        // 生成图片文件
+        ConvertToImage.ConvertToImage(today+"_5每日统计.xlsx");
     }
 
 
@@ -653,6 +663,16 @@ class BacklinxianApplicationTests {
         int count = 0; // 序号
         sheet.getRow(1).getCell(9).setCellValue("填报时间：  " + date);
 
+        Font font = wb.createFont();
+        font.setFontHeightInPoints((short)8); // 小号字体
+        CellStyle style=wb.createCellStyle();
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN); //下边框
+        style.setBorderLeft(BorderStyle.THIN);//左边框
+        style.setBorderTop(BorderStyle.THIN);//上边框
+        style.setBorderRight(BorderStyle.THIN);//右边框
+        style.setFont(font);
+
         // 读取excel
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\2临泉镇解码.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
@@ -661,12 +681,12 @@ class BacklinxianApplicationTests {
             if (date.equals(row2.getCell(14).getStringCellValue())) {
                 Row row = sheet.createRow(rowNum++);
                 int j = 0;
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(++count); // 序号
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(1)));
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(2)));
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("0");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(4)));
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(5)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(++count); // 序号
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(1)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(2)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("0");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(4)));
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(Util.getCellValueByCell(row2.getCell(5)));
                 String type = Util.getCellValueByCell(row2.getCell(7)); // 类型
                 String village = Util.getCellValueByCell(row2.getCell(8)); // 村委社区
                 String reason = Util.getCellValueByCell(row2.getCell(6)); // 解码原因
@@ -682,20 +702,20 @@ class BacklinxianApplicationTests {
                     // 3 其他。把正常的解码原因填进来
                     reason = Util.getCellValueByCell(row2.getCell(6));
                 }*/
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(reason); // 解码原因
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("141100");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue("green");
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(StringUtils.isNotEmpty(Util.getCellValueByCell(row2.getCell(12)))? Util.getCellValueByCell(row2.getCell(12)): village); // 如果没填详细地址，填入所属社区
-                row.createCell(j).setCellType(CellType.STRING);row.getCell(j++).setCellValue(memo);
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(reason); // 解码原因
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("141100");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue("green");
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(StringUtils.isNotEmpty(Util.getCellValueByCell(row2.getCell(12)))? Util.getCellValueByCell(row2.getCell(12)): village); // 如果没填详细地址，填入所属社区
+                row.createCell(j).setCellType(CellType.STRING);row.getCell(j).setCellStyle(style);row.getCell(j++).setCellValue(memo);
             }
         }
         sheet.getRow(2).getCell(0).setCellValue("文件名：                 ，解码数量：    "+count+"     人 。");
 
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_6临泉镇解码第一批" + count +"人.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_4临泉镇解码第一批" + count +"人.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
@@ -704,7 +724,6 @@ class BacklinxianApplicationTests {
     }
 
     // 6、每日解除隔离日报
-    @Test
     void jiechu(String date) {
         // 读取excel
         Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\7临泉镇解除隔离日报表.xlsx"));
@@ -735,7 +754,7 @@ class BacklinxianApplicationTests {
             }
         }
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_7临泉镇解除隔离日报表.xlsx");
+            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_2临泉镇解除隔离日报表.xlsx");
             wb.write(output);
             output.flush();
         } catch (IOException e) {
@@ -773,21 +792,18 @@ class BacklinxianApplicationTests {
         generateWubaoyiExcel(date, type1List, "1");
         generateWubaoyiExcel(date, type2List, "2");
         generateWubaoyiExcel(date, type3List, "3");
+        generateWeijianwei(date, result, resultAll);
+        // 解除隔离日报
+        jiechu(date);
 
         // 总的打印的五包一文件
         generateWubaoyiExcel(date, result);
-        generateWeijianwei(date, result, resultAll);
-        // 2022年4月22日19:31:45 检委会的这两个表又说不用报了。
-        // 2、检委会
-//        generateJianwei(date, result, resultAll);
-        // 3、当日镇日报
-        ribao(date);
-
-        // 解除隔离日报
-        jiechu(date);
         // 解码日报
         jiema(date);
-
+        // 2022年4月22日19:31:45 检委会的这两个表又说不用报了。
+//        generateJianwei(date, result, resultAll);
+        // 当日镇日报
+        ribao(date);
         // 最终，发送文件 给企业微信
         sendExcel2Wechat(date);
     }
@@ -805,12 +821,27 @@ class BacklinxianApplicationTests {
         TeamWechatUtil.pushtMsg(accessToken, requestStr);
         for (File file : files) {
             if(file.getName().startsWith(date)) {
-                String userid = ""; // 日报发送给不同的人
-                if(file.getName().startsWith(date + "_0省外") || file.getName().startsWith(date + "_2")) { // 发送给卫健委省外的
-                    userid = "ChengWei|ShiXingHeRuMeng|freedom";
-                } else {
-                    userid = "ChengWei|freedom";
+                String userid = "ChengWei"; // 日报发送给不同的人  default
+                if(file.getName().startsWith(date + "_0省外")) { // 省外五包一 发送给卫健委省外的
+                    userid = "ShiXingHeRuMeng";
                 }
+                if(file.getName().startsWith(date + "_0省内") || file.getName().startsWith(date + "_0太原")) { // 省内五包一 发送给卫健委省内的
+                    userid = "2ec809b7869fb9c6acf84621fdc0c500";
+                }
+                if(file.getName().startsWith(date + "_1")) { // 卫健委每日报表 发送给卫健委省内和省外
+                    userid = "ShiXingHeRuMeng|2ec809b7869fb9c6acf84621fdc0c500";
+                }
+                if(file.getName().startsWith(date + "_2")) { // 解除隔离日报发送给卫健委省内和领导
+                    userid = "2ec809b7869fb9c6acf84621fdc0c500|freedom|ChengWei";
+                }
+                if(file.getName().startsWith(date + "_3") || file.getName().startsWith(date + "_4")) { // 五包一总的和五包一解码表，需要打印并且盖章的，发给内部人士
+                    userid = "freedom|ChengWei|Mo";
+                }
+                if(file.getName().contains("jpg")) { // 每日的统计汇总图片
+                    userid = "freedom|ChengWei";
+                }
+
+
                 // 确定发送文件
                 String mediaId = TeamWechatUtil.fileUpload(accessToken, file);
                 if(StringUtils.isEmpty(mediaId)) {
