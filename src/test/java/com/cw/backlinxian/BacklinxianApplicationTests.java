@@ -47,8 +47,8 @@ class BacklinxianApplicationTests {
         Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\1临泉镇新冠疫情防控返临人员排查表4月.xlsx"));
         Sheet sheet2 = wb2.getSheetAt(0);
 
-        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.25';"); // 清空表
-        for (int i = 2672; i<sheet2.getPhysicalNumberOfRows(); i++) {
+        jdbcTemplate.update("delete from cw.back_linxian_people where uploaddate = '2022.04.26';"); // 清空表
+        for (int i = 2736; i<sheet2.getPhysicalNumberOfRows(); i++) {
             Row row = sheet2.getRow(i);
             int j = 1; // 从name开始解析，放到arr里下标-1
             String insertSql = "INSERT INTO cw.back_linxian_people\n" +
@@ -147,9 +147,11 @@ class BacklinxianApplicationTests {
     }
 
     // 1、生成五包一名单 -- 只是当日数据，我们自己打印留存
-    void generateWubaoyiExcel(String date, List<BackPersonVo> result) {
+    // 2022年4月26日16:03:05 是否带签章
+    void generateWubaoyiExcel(String date, List<BackPersonVo> result, boolean sign) {
         // 读取excel
-        Workbook wb2 = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\1五包一临泉镇返临人员排查表模板.xlsx"));
+        String filePath = sign? "C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\1五包一临泉镇返临人员排查表模板带签章.xlsx": "C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\1五包一临泉镇返临人员排查表模板.xlsx";
+        Workbook wb2 = ExcelUtil.readExcel(new File(filePath));
         Sheet sheet2 = wb2.getSheetAt(0);
         int rowNum = 3; // 从第4行开始创建
         int count = 0; // 序号 & 总数
@@ -216,13 +218,17 @@ class BacklinxianApplicationTests {
         String totalMsg = date + " 共排查"+count+"人，其中太原"+type1Count+"人，省内除太原"+type2Count+"人，省外"+type3Count+"人。采取防控措施："+jujiaCount+"人居家隔离，"+jizhongCount+"人集中隔离。";
         cell.setCellValue(totalMsg);
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_3五包一临泉镇返临人员排查表.xlsx");
+            String filePathOut = sign? "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_3五包一临泉镇返临人员排查表带签章.xlsx": "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_3五包一临泉镇返临人员排查表.xlsx";
+            FileOutputStream output=new FileOutputStream(filePathOut);
             wb2.write(output);
             output.flush();
+            if(sign) {
+                // 如果带签章的话，还需要生成五包一电子文件
+                AsposeUtil.convertToPdf(filePathOut);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     // 2、生成卫健委所需的报表数据，每日和累计报表 date "2022.04.22"
@@ -649,15 +655,16 @@ class BacklinxianApplicationTests {
             e.printStackTrace();
         }
         // 生成图片文件
-        ConvertToImage.ConvertToImage(today+"_5每日统计.xlsx");
+        AsposeUtil.convertToImage(today+"_5每日统计.xlsx");
     }
 
 
     // 5、解码表
     @Test
-    void jiema(String date) {
+    void jiema(String date, boolean sign) {
         // 读取excel
-        Workbook wb = ExcelUtil.readExcel(new File("C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\6临泉镇解码模板.xlsx"));
+        String filePath = sign? "C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\6临泉镇解码模板带签章.xlsx": "C:\\Users\\99543\\Desktop\\tmp\\0报表模板\\6临泉镇解码模板.xlsx";
+        Workbook wb = ExcelUtil.readExcel(new File(filePath));
         Sheet sheet = wb.getSheetAt(0);
         int rowNum = 4; // 从第5行开始创建
         int count = 0; // 序号
@@ -715,9 +722,14 @@ class BacklinxianApplicationTests {
         sheet.getRow(2).getCell(0).setCellValue("文件名：                 ，解码数量：    "+count+"     人 。");
 
         try {
-            FileOutputStream output=new FileOutputStream("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_4临泉镇解码第一批" + count +"人.xlsx");
+            String filePathOut = sign? "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_4临泉镇解码第一批" + count +"人带签章.xlsx": "C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\"+date+"_4临泉镇解码第一批" + count +"人.xlsx";
+            FileOutputStream output=new FileOutputStream(filePathOut);
             wb.write(output);
             output.flush();
+            if(sign) {
+                // 如果带签章的话，还需要生成五包一电子文件
+                AsposeUtil.convertToPdf(filePathOut);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -797,9 +809,11 @@ class BacklinxianApplicationTests {
         jiechu(date);
 
         // 总的打印的五包一文件
-        generateWubaoyiExcel(date, result);
+        generateWubaoyiExcel(date, result, false);
+        generateWubaoyiExcel(date, result, true);
         // 解码日报
-        jiema(date);
+        jiema(date, false);
+        jiema(date, true);
         // 2022年4月22日19:31:45 检委会的这两个表又说不用报了。
 //        generateJianwei(date, result, resultAll);
         // 当日镇日报
@@ -821,7 +835,7 @@ class BacklinxianApplicationTests {
         TeamWechatUtil.pushtMsg(accessToken, requestStr);
         for (File file : files) {
             if(file.getName().startsWith(date)) {
-                String userid = "ChengWei"; // 日报发送给不同的人  default
+                String userid = ""; // 日报发送给不同的人  default
                 if(file.getName().startsWith(date + "_0省外")) { // 省外五包一 发送给卫健委省外的
                     userid = "ShiXingHeRuMeng";
                 }
@@ -834,22 +848,23 @@ class BacklinxianApplicationTests {
                 if(file.getName().startsWith(date + "_2")) { // 解除隔离日报发送给卫健委省内和领导
                     userid = "2ec809b7869fb9c6acf84621fdc0c500|freedom|ChengWei";
                 }
-                if(file.getName().startsWith(date + "_3") || file.getName().startsWith(date + "_4")) { // 五包一总的和五包一解码表，需要打印并且盖章的，发给内部人士
+                if((file.getName().startsWith(date + "_3") || file.getName().startsWith(date + "_4"))&& !file.getName().contains("带签章")) { // 五包一总的和五包一解码表，需要打印并且盖章的，发给内部人士
                     userid = "freedom|ChengWei|Mo";
                 }
                 if(file.getName().contains("jpg")) { // 每日的统计汇总图片
                     userid = "freedom|ChengWei";
                 }
 
-
-                // 确定发送文件
-                String mediaId = TeamWechatUtil.fileUpload(accessToken, file);
-                if(StringUtils.isEmpty(mediaId)) {
-                    System.out.println("上传临时素材失败");
-                    return;
+                if(StringUtils.isNotEmpty(userid)) { // 其余文件就不发了
+                    // 确定发送文件
+                    String mediaId = TeamWechatUtil.fileUpload(accessToken, file);
+                    if (StringUtils.isEmpty(mediaId)) {
+                        System.out.println("上传临时素材失败");
+                        return;
+                    }
+                    String requestFileStr = "{\"touser\":\"" + userid + "\",\"msgtype\":\"file\",\"agentid\":" + TeamWechatUtil.AGENTID + ",\"file\":{\"media_id\":\"" + mediaId + "\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
+                    TeamWechatUtil.pushtMsg(accessToken, requestFileStr);
                 }
-                String requestFileStr = "{\"touser\":\""+ userid +"\",\"msgtype\":\"file\",\"agentid\":"+TeamWechatUtil.AGENTID+",\"file\":{\"media_id\":\""+mediaId+"\"},\"safe\":0,\"enable_duplicate_check\":0,\"duplicate_check_interval\":1800}";
-                TeamWechatUtil.pushtMsg(accessToken, requestFileStr);
             }
         }
     }
