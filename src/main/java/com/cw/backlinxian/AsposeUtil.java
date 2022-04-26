@@ -4,12 +4,29 @@ import com.aspose.cells.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 
 public class AsposeUtil {
+
+    public static boolean getLicense() {
+        boolean result = false;
+        try {
+            InputStream is = AsposeUtil.class.getClassLoader().getResourceAsStream("\\license.xml");
+            License aposeLic = new License();
+            aposeLic.setLicense(is);
+            result = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
 
     public static void convertToImage(String excelPath) {
         Workbook book = null;
         try {
+            if (!getLicense()) { // 验证License 若不验证则转化出的pdf文档会有水印产生
+                return;
+            }
             book = new Workbook("C:\\Users\\99543\\Desktop\\tmp\\1报表生成\\" + excelPath);
             // Get the first worksheet
             //Worksheet sheet = book.getWorksheets().get(0);
@@ -41,8 +58,10 @@ public class AsposeUtil {
 
     public static void convertToPdf(String excelPath) {
         try {
+            if (!getLicense()) { // 验证License 若不验证则转化出的pdf文档会有水印产生
+                return;
+            }
             Workbook wb = new Workbook(excelPath);// 原始excel路径
-
             FileOutputStream fileOS = new FileOutputStream(excelPath.replace("xlsx", "pdf"));
             PdfSaveOptions pdfSaveOptions = new PdfSaveOptions();
             pdfSaveOptions.setOnePagePerSheet(true);

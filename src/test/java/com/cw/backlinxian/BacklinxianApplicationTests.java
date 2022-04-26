@@ -819,7 +819,7 @@ class BacklinxianApplicationTests {
         // 当日镇日报
         ribao(date);
         // 最终，发送文件 给企业微信
-        sendExcel2Wechat(date);
+//        sendExcel2Wechat(date);
     }
 
     @Test
